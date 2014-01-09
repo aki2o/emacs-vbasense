@@ -5,7 +5,7 @@
 ;; Author: Hiroaki Otsu <ootsuhiroaki@gmail.com>
 ;; Keywords: vba, completion
 ;; URL: https://github.com/aki2o/emacs-vbasense
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; Package-Requires: ((auto-complete "1.4.0") (log4e "0.2.0") (yaxception "0.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -123,6 +123,8 @@
 ;; Popup help about something at point.
 ;; `vbasense-jump-to-definition'
 ;; Jump to definition at point.
+;; `vbasense-insert-implement-definition'
+;; Insert definition of procedure which the implemented interface has.
 ;; `vbasense-setup-current-buffer'
 ;; Do setup for using vbasense in current buffer.
 ;; 
@@ -232,8 +234,8 @@ Looking up in big size buffer may cause slowness of Emacs."
 (defvar vbasense--regexp-variable-ident "[a-zA-Z][a-zA-Z_0-9]*")
 (defvar vbasense--regexp-namespace-ident "[a-zA-Z][a-zA-Z_0-9.]*")
 (defvar vbasense--regexp-argument (rx-to-string `(and "("
-                                                      (group (+ (or (* not-newline)
-                                                                    (regexp ".+_\r?\n"))))
+                                                      (group (or ""
+                                                                 (and (+? anything) (not (any "(")))))
                                                       ")")))
 
 (defvar vbasense--builtin-keywords nil)
@@ -1984,6 +1986,16 @@ The project is detected by `anything-project'."
           (vbasense--set-ac-cands-type vbasense--current-methods 'currmethod)
           (vbasense--set-ac-cands-type vbasense--available-implicit-methods 'nsmethod)))
 
+(defvar vbasense--ac-action-function nil)
+(defun vbasense--ac-action-function ()
+  (when (functionp vbasense--ac-action-function)
+    (funcall vbasense--ac-action-function)))
+
+(defun vbasense--ac-action-for-implements ()
+  (when (y-or-n-p "[VBASense] Insert definition of the implement interface procedure?")
+    (insert "\n\n")
+    (vbasense-insert-implement-definition)))
+
 (defun vbasense--get-ac-candidates ()
   (yaxception:$
     (yaxception:try
@@ -1994,6 +2006,7 @@ The project is detected by `anything-project'."
         (vbasense--trace "skip update current definition : buffersize[%s]" (point-max))
         (vbasense--update-current-instance))
       (setq vbasense--ac-candidate-type-alist nil)
+      (setq vbasense--ac-action-function nil)
       (multiple-value-bind (ctx ident-value) (vbasense--get-current-context)
         (vbasense--debug "got current context. ctx[%s] ident-value[%s]" ctx ident-value)
         (case ctx
@@ -2003,7 +2016,8 @@ The project is detected by `anything-project'."
           (modifier         (vbasense--set-ac-cands-type ident-value 'keyword))
           (class            (append (vbasense--set-ac-cands-type ident-value 'keyword)
                                     (vbasense--get-instancable-idents)))
-          (implement        (vbasense--set-ac-cands-type vbasense--available-interfaces 'interface))
+          (implement        (setq vbasense--ac-action-function 'vbasense--ac-action-for-implements)
+                            (vbasense--set-ac-cands-type vbasense--available-interfaces 'interface))
           (variable         (append (vbasense--set-ac-cands-type ident-value 'keyword)
                                     (vbasense--set-ac-cands-type vbasense--current-instances 'var)))
           (app-member       (vbasense--get-app-members ident-value))
@@ -2116,6 +2130,7 @@ The project is detected by `anything-project'."
     (symbol . "h")
     (document . vbasense--get-ac-document)
     (requires . 1)
+    (action . vbasense--ac-action-function)
     (cache)
     (limit . 500)))
 
@@ -2125,6 +2140,7 @@ The project is detected by `anything-project'."
     (symbol . "w")
     (document . vbasense--get-ac-document)
     (requires . 0)
+    (action . vbasense--ac-action-function)
     (cache)
     (limit . 500)))
 
@@ -2134,6 +2150,7 @@ The project is detected by `anything-project'."
     (symbol . "o")
     (document . vbasense--get-ac-document)
     (requires . 0)
+    (action . vbasense--ac-action-function)
     (cache)
     (limit . 500)))
 
@@ -2143,6 +2160,7 @@ The project is detected by `anything-project'."
     (symbol . "m")
     (document . vbasense--get-ac-document)
     (requires . 0)
+    (action . vbasense--ac-action-function)
     (cache)))
 
 (defvar ac-source-vbasense-paren
@@ -2151,6 +2169,7 @@ The project is detected by `anything-project'."
     (symbol . "p")
     (document . vbasense--get-ac-document)
     (requires . 0)
+    (action . vbasense--ac-action-function)
     (cache)
     (limit . 500)))
 
@@ -2160,6 +2179,7 @@ The project is detected by `anything-project'."
     (symbol . "c")
     (document . vbasense--get-ac-document)
     (requires . 0)
+    (action . vbasense--ac-action-function)
     (cache)
     (limit . 500)))
 
@@ -2169,6 +2189,7 @@ The project is detected by `anything-project'."
     (symbol . "k")
     (document . vbasense--get-ac-document)
     (requires . 0)
+    (action . vbasense--ac-action-function)
     (cache)
     (limit . 500)))
 
@@ -2260,25 +2281,33 @@ The project is detected by `anything-project'."
                             (vbasense--info "can't identify method from %s" xname)
                             "")))))))))
 
+(defsubst vbasense--get-method-param-strings (mtd &optional unknown-type)
+  (loop for p in (vbasense--method-params mtd)
+        collect (concat (cond ((vbasense--param-optional p) "Optional ")
+                              ((vbasense--param-arrayp p)   "ParamArray ")
+                              (t                            ""))
+                        (if (vbasense--param-ref p) "ByRef " "ByVal ")
+                        (vbasense--param-name p)
+                        " As "
+                        (cond ((and (stringp (vbasense--param-type p))
+                                    (not (string= (vbasense--param-type p) ""))) (vbasense--param-type p))
+                              (unknown-type                                      unknown-type)
+                              (t                                                 "=Unknown="))
+                        (if (string= (vbasense--param-default p) "")
+                            ""
+                          (concat " = " (vbasense--param-default p))))))
+
+(defsubst vbasense--get-method-ret-string (mtd)
+  (if (and (stringp (vbasense--method-ret mtd))
+           (not (string= (vbasense--method-ret mtd) "")))
+      (concat " As " (vbasense--method-ret mtd))
+    ""))
+
 (defun vbasense--get-method-eldoc (method &optional index)
   (let* ((mtype (vbasense--method-type method))
          (name (vbasense--method-name method))
-         (pinfos (loop for p in (vbasense--method-params method)
-                       collect (concat (if (vbasense--param-optional p) "Optional " "")
-                                       (if (vbasense--param-ref p) "ByRef " "ByVal ")
-                                       (vbasense--param-name p)
-                                       " As "
-                                       (if (or (not (stringp (vbasense--param-type p)))
-                                               (string= (vbasense--param-type p) ""))
-                                           "=Unknown="
-                                         (vbasense--param-type p))
-                                       (if (string= (vbasense--param-default p) "")
-                                           ""
-                                         (concat " = " (vbasense--param-default p))))))
-         (rinfo (if (and (stringp (vbasense--method-ret method))
-                         (not (string= (vbasense--method-ret method) "")))
-                    (concat " As " (vbasense--method-ret method))
-                  "")))
+         (pinfos (vbasense--get-method-param-strings method))
+         (rinfo (vbasense--get-method-ret-string method)))
     (concat (propertize mtype 'face 'font-lock-keyword-face)
             " "
             (propertize name 'face 'font-lock-function-name-face)
@@ -2357,6 +2386,45 @@ The project is detected by `anything-project'."
     (yaxception:catch 'error e
       (message "[VBASense] %s" (yaxception:get-text e))
       (vbasense--error "failed jump to definition : %s\n%s"
+                       (yaxception:get-text e)
+                       (yaxception:get-stack-trace-string e)))))
+
+(defvar vbasense--regexp-implements (rx-to-string `(and bol (* space)
+                                                        (or ,@vbasense--words-implement) (+ space)
+                                                        (group (regexp ,vbasense--regexp-namespace-ident)))))
+(defun vbasense-insert-implement-definition ()
+  "Insert definition of procedure which the implemented interface has."
+  (interactive)
+  (yaxception:$
+    (yaxception:try
+      (when (vbasense--active-p)
+        (vbasense--trace "start insert implement definition")
+        (let* ((ifs (save-excursion
+                      (loop initially (goto-char (point-min))
+                            while (re-search-forward vbasense--regexp-implements nil t)
+                            for ifnm = (match-string-no-properties 1)
+                            for belongkey = (concat "i:" (downcase ifnm))
+                            for i = (gethash belongkey vbasense--hash-object-cache)
+                            if (vbasense--interface-p i)
+                            collect i
+                            else
+                            do (vbasense--info "can't detect implement object from %s" ifnm)))))
+          (loop for i in ifs
+                for ifnm = (vbasense--interface-name i)
+                do (vbasense--trace "start insert definition of %s" ifnm)
+                do (loop for m in (vbasense--interface-methods i)
+                         for mtype = (vbasense--method-type m)
+                         for mtdnm = (vbasense--method-name m)
+                         for ptexts = (vbasense--get-method-param-strings m "Variant")
+                         for rtext = (vbasense--get-method-ret-string m)
+                         for deftext = (concat (format "Private %s %s_%s(%s)%s\n"
+                                                       mtype ifnm mtdnm (mapconcat 'identity ptexts ", ") rtext)
+                                               (format "End %s\n" mtype))
+                         do (insert deftext "\n"))))
+        (message "[VBASense] finished insert implement definition")))
+    (yaxception:catch 'error e
+      (message "[VBASense] %s" (yaxception:get-text e))
+      (vbasense--error "failed insert implement definition : %s\n%s"
                        (yaxception:get-text e)
                        (yaxception:get-stack-trace-string e)))))
 
