@@ -5,7 +5,7 @@
 ;; Author: Hiroaki Otsu <ootsuhiroaki@gmail.com>
 ;; Keywords: vba, completion
 ;; URL: https://github.com/aki2o/emacs-vbasense
-;; Version: 0.0.2
+;; Version: 0.0.3
 ;; Package-Requires: ((auto-complete "1.4.0") (log4e "0.2.0") (yaxception "0.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -301,7 +301,7 @@ Looking up in big size buffer may cause slowness of Emacs."
 (defvar vbasense--available-classes nil)    ; not full name list
 (defvar vbasense--available-coclasses nil)  ; not full name list
 (defvar vbasense--available-enums nil)      ; not full name list
-(defvar vbasense--available-vbconsts nil)   ; not full name list
+(defvar vbasense--available-implicit-enummembers nil)   ; not full name list
 (defvar vbasense--available-implicit-methods nil)
 
 (defvar vbasense--current-methods nil)
@@ -334,6 +334,7 @@ Looking up in big size buffer may cause slowness of Emacs."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Available for any buffer
 
+(defvar vbasense--implicit-enummember-prefixs '("vb" "xl"))
 (defun vbasense--update-availables ()
   (setq vbasense--available-applications nil)
   (loop for tli being the hash-values in vbasense--hash-app-cache
@@ -357,16 +358,19 @@ Looking up in big size buffer may cause slowness of Emacs."
                     (loop for m in (vbasense--class-methods tli)
                           do (pushnew (vbasense--method-name m) vbasense--available-implicit-methods :test 'equal))))))
   (setq vbasense--available-enums nil)
-  (setq vbasense--available-vbconsts nil)
-  (loop for tli being the hash-values in vbasense--hash-enum-cache
+  (setq vbasense--available-implicit-enummembers nil)
+  (loop with re-implicit-member = (rx-to-string `(and bos
+                                                      (or ,@vbasense--implicit-enummember-prefixs)
+                                                      (any "A-Z")))
+        for tli being the hash-values in vbasense--hash-enum-cache
         for enumnm = (vbasense--enum-name tli)
         do (pushnew enumnm vbasense--available-enums :test 'equal)
-        if (string-match "\\`vb" enumnm)
-        do (pushnew enumnm vbasense--available-vbconsts :test 'equal)
+        if (string-match re-implicit-member enumnm)
+        do (pushnew enumnm vbasense--available-implicit-enummembers :test 'equal)
         do (loop for m in (vbasense--enum-members tli)
                  for membernm = (vbasense--enummember-name m)
-                 if (string-match "\\`vb" membernm)
-                 do (pushnew membernm vbasense--available-vbconsts :test 'equal))))
+                 if (string-match re-implicit-member membernm)
+                 do (pushnew membernm vbasense--available-implicit-enummembers :test 'equal))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;
@@ -2042,8 +2046,8 @@ The project is detected by `anything-project'."
 (defun vbasense--get-ac-progid-candidates ()
   (vbasense--set-ac-cands-type vbasense--available-progids 'progid))
 
-(defun vbasense--get-ac-vbconst-candidates ()
-  (vbasense--set-ac-cands-type vbasense--available-vbconsts 'enummember))
+(defun vbasense--get-ac-implicit-enummember-candidates ()
+  (vbasense--set-ac-cands-type vbasense--available-implicit-enummembers 'enummember))
 
 (defun* vbasense--get-any-document (&key x xname xtype)
   (let* ((xtype (or xtype
@@ -2209,9 +2213,12 @@ The project is detected by `anything-project'."
     (cache)
     (limit . 500)))
 
-(defvar ac-source-vbasense-vbconst
-  '((candidates . vbasense--get-ac-vbconst-candidates)
-    (prefix . "[^.]\\<\\(vb[a-zA-Z_0-9]*\\)")
+(defvar vbasense--regexp-ac-implicit-enummenber (rx-to-string `(and (not (any ".")) bow
+                                                                    (group (or ,@vbasense--implicit-enummember-prefixs)
+                                                                           (* (any "a-zA-Z_0-9"))))))
+(defvar ac-source-vbasense-implicit-enummember
+  `((candidates . vbasense--get-ac-implicit-enummember-candidates)
+    (prefix . ,vbasense--regexp-ac-implicit-enummenber)
     (symbol . "v")
     (document . vbasense--get-ac-document)
     (requires . 0)
@@ -2459,7 +2466,7 @@ The project is detected by `anything-project'."
         (add-to-list 'ac-sources 'ac-source-vbasense-comma)
         (add-to-list 'ac-sources 'ac-source-vbasense-keywordargument)
         (add-to-list 'ac-sources 'ac-source-vbasense-createobject)
-        (add-to-list 'ac-sources 'ac-source-vbasense-vbconst)
+        (add-to-list 'ac-sources 'ac-source-vbasense-implicit-enummember)
         (auto-complete-mode t)
         ;; For eldoc
         (set (make-local-variable 'eldoc-documentation-function) 'vbasense--echo-method-usage)
