@@ -64,7 +64,7 @@ For Each x In ...
 You need to implement the definition with fulfilling the following condition
 about procedure of the interface that put on Implements statement.  
 
-* Name "_INTERFACE_\__PROCEDURE_" to the procedure name
+* Name "_INTERFACE_&#x5f;_PROCEDURE_" to the procedure name
 * Set "Private" to the procedure scope
 
 VBASense insert the above definition automatically in the following case.  
@@ -181,7 +181,7 @@ it means that TLBINF32.DLL is not installed yet.
 
 In above case, you need to regist TLBINF32.DLL.  
 
-\* My environment TLBINF32.DLL is put in contrib directory.  
+\* My environment TLBINF32.DLL have been put in contrib directory.  
 \* My environment TLBINF32.DLL is the downloaded file from [here](http://jp.dll-files.com/tlbinf32.dll.html).  
 \* TLBINF32.DLL is bundled with Visual Basic 6.0.  
 
