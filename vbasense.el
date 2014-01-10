@@ -93,6 +93,8 @@
 ;; Major modes vbasense is enabled on.
 ;; `vbasense-ac-trigger-command-keys'
 ;; Keystrokes for doing `ac-start' with self insert.
+;; `vbasense-ac-implicit-enummember-prefixes'
+;; Prefixes of the Enum member which you let be candidate of auto-complete without Enum.
 ;; `vbasense-lookup-current-buffer-threshold'
 ;; Size of buffer as threshold for looking up Procedure/Enum/Type in current buffer for each of completion.
 ;; 
@@ -212,6 +214,11 @@ The user library is the information of VBA source file other than the opened buf
   :type '(repeat string)
   :group 'vbasense)
 
+(defcustom vbasense-ac-implicit-enummember-prefixes '("vb" "xl")
+  "Prefixes of the Enum member which you let be candidate of auto-complete without Enum."
+  :type '(repeat string)
+  :group 'vbasense)
+
 (defcustom vbasense-lookup-current-buffer-threshold 10000
   "Size of buffer as threshold for looking up Procedure/Enum/Type in current buffer for each of completion.
 
@@ -301,7 +308,7 @@ Looking up in big size buffer may cause slowness of Emacs."
 (defvar vbasense--available-classes nil)    ; not full name list
 (defvar vbasense--available-coclasses nil)  ; not full name list
 (defvar vbasense--available-enums nil)      ; not full name list
-(defvar vbasense--available-implicit-enummembers nil)   ; not full name list
+(defvar vbasense--available-implicit-enummembers nil)
 (defvar vbasense--available-implicit-methods nil)
 
 (defvar vbasense--current-methods nil)
@@ -334,7 +341,6 @@ Looking up in big size buffer may cause slowness of Emacs."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Available for any buffer
 
-(defvar vbasense--implicit-enummember-prefixs '("vb" "xl"))
 (defun vbasense--update-availables ()
   (setq vbasense--available-applications nil)
   (loop for tli being the hash-values in vbasense--hash-app-cache
@@ -360,7 +366,7 @@ Looking up in big size buffer may cause slowness of Emacs."
   (setq vbasense--available-enums nil)
   (setq vbasense--available-implicit-enummembers nil)
   (loop with re-implicit-member = (rx-to-string `(and bos
-                                                      (or ,@vbasense--implicit-enummember-prefixs)
+                                                      (or ,@vbasense-ac-implicit-enummember-prefixes)
                                                       (any "A-Z")))
         for tli being the hash-values in vbasense--hash-enum-cache
         for enumnm = (vbasense--enum-name tli)
@@ -2213,17 +2219,18 @@ The project is detected by `anything-project'."
     (cache)
     (limit . 500)))
 
-(defvar vbasense--regexp-ac-implicit-enummenber (rx-to-string `(and (not (any ".")) bow
-                                                                    (group (or ,@vbasense--implicit-enummember-prefixs)
-                                                                           (* (any "a-zA-Z_0-9"))))))
-(defvar ac-source-vbasense-implicit-enummember
-  `((candidates . vbasense--get-ac-implicit-enummember-candidates)
-    (prefix . ,vbasense--regexp-ac-implicit-enummenber)
-    (symbol . "v")
-    (document . vbasense--get-ac-document)
-    (requires . 0)
-    (cache)
-    (limit . 500)))
+(defvar ac-source-vbasense-implicit-enummember nil)
+(defun vbasense--get-ac-source-implicit-enummember ()
+  (let ((re (rx-to-string `(and (not (any ".")) bow
+                                (group (or ,@vbasense-ac-implicit-enummember-prefixes)
+                                       (* (any "a-zA-Z_0-9")))))))
+    `((candidates . vbasense--get-ac-implicit-enummember-candidates)
+      (prefix . ,re)
+      (symbol . "i")
+      (document . vbasense--get-ac-document)
+      (requires . 0)
+      (cache)
+      (limit . 500))))
 
 
 ;;;;;;;;;;;;;;;
@@ -2467,6 +2474,8 @@ The project is detected by `anything-project'."
         (add-to-list 'ac-sources 'ac-source-vbasense-keywordargument)
         (add-to-list 'ac-sources 'ac-source-vbasense-createobject)
         (add-to-list 'ac-sources 'ac-source-vbasense-implicit-enummember)
+        (when (not ac-source-vbasense-implicit-enummember)
+          (setq ac-source-vbasense-implicit-enummember (vbasense--get-ac-source-implicit-enummember)))
         (auto-complete-mode t)
         ;; For eldoc
         (set (make-local-variable 'eldoc-documentation-function) 'vbasense--echo-method-usage)
