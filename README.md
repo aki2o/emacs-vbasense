@@ -90,7 +90,7 @@ Install
 
 ### If use el-get.el
 
-2014/01/09 Not yet regist.  
+2014/02/01 It's available. But, master branch only.  
 
 ### If use git command
 

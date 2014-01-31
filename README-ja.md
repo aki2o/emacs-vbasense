@@ -84,7 +84,7 @@ http://www.youtube.com/watch?v=6QUXUz6HeTs
 
 ### el-get.elを使う場合
 
-2014/01/09 と言いつつ、まだ利用できません。  
+2014/02/01 利用可能。ただし、masterブランチのみです。  
 
 ### gitコマンドを使う場合
 
