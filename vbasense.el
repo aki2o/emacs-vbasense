@@ -1497,9 +1497,10 @@ The project is detected by `anything-project'."
             (when (not guid) (vbasense--info "can't find GUID from ProgID[%s]" progid))
             (when (not tli) (vbasense--info "can't resolve GUID[%s] from ProgID[%s]" guid progid))
             (when (stringp vartype)
-              (delete currdef vbasense--current-instance-alist)
+              (setq vbasense--current-instance-alist
+                    (delete currdef vbasense--current-instance-alist))
               (push `(,varnm . ,vartype) vbasense--current-instance-alist)
-              (delete varnm srchvars)
+              (setq srchvars (delete varnm srchvars))
               (vbasense--trace "embodied instance[%s] to [%s] by createobject statement" varnm vartype))))))
     ;; find substitute statement
     (when srchvars
@@ -1518,9 +1519,10 @@ The project is detected by `anything-project'."
                 (when (and (or (eq nstype 'class)
                                (eq nstype 'interface))
                            (stringp ns))
-                  (delete currdef vbasense--current-instance-alist)
+                  (setq vbasense--current-instance-alist
+                        (delete currdef vbasense--current-instance-alist))
                   (push `(,varnm . ,ns) vbasense--current-instance-alist)
-                  (delete varnm srchvars)
+                  (setq srchvars (delete varnm srchvars))
                   (vbasense--trace "embodied instance[%s] to [%s] by substitute statement" varnm ns))))))))
     ;; find for statement
     (when srchvars
@@ -1543,9 +1545,10 @@ The project is detected by `anything-project'."
                        (ret (when (vbasense--method-p mtd)
                               (vbasense--method-ret mtd))))
                   (when (stringp ret)
-                    (delete currdef vbasense--current-instance-alist)
+                    (setq vbasense--current-instance-alist
+                          (delete currdef vbasense--current-instance-alist))
                     (push `(,varnm . ,ret) vbasense--current-instance-alist)
-                    (delete varnm srchvars)
+                    (setq srchvars (delete varnm srchvars))
                     (vbasense--trace "embodied instance[%s] to [%s] by for statement" varnm ret)))))))))
     ))
 
