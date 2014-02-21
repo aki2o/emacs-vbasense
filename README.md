@@ -124,21 +124,14 @@ Configuration
 (setq vbasense-popup-help-key "C-:")
 (setq vbasense-jump-to-definition-key "C->")
 
-;; If nesesarry, customize for yourself
-;; (add-to-list 'vbasense-tli-files "c:/Program Files/Common Files/System/ado/msado21.tlb")
-;; (setq vbasense-cache-directory "c:/TEMP/vbasense")
-;; (add-to-list 'vbasense-enable-modes 'hoge-mode)
-;; (add-to-list 'vbasense-ac-trigger-command-keys "=")
-;; (add-to-list 'vbasense-user-library-directories "c:/MyVBALibraray")
-;; (setq vbasense-setup-user-library-function (lambda () (vbasense-load-project)))
-;; (add-to-list 'vbasense-ac-implicit-enummember-prefixes "mso")
-;; (setq vbasense-lookup-current-buffer-threshold 15000)
+;; Make config suit for you. About the config item, eval the following sexp.
+;; (customize-group "vbasense")
 
 ;; Do setting a recommemded configuration
 (vbasense-config-default)
 ```
 
-\* About the above commented item, see Consideration section.  
+\* About the item that you should be careful, see Consideration section.  
 
 
 Consideration

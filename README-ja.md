@@ -113,27 +113,18 @@ http://www.youtube.com/watch?v=6QUXUz6HeTs
 ```lisp
 (require 'vbasense)
 
-;; ポイントしている要素についてのヘルプをポップアップ表示するキー
+;; キーバインド
 (setq vbasense-popup-help-key "C-:")
-
-;; ポイントしているメソッドの定義にジャンプするキー
 (setq vbasense-jump-to-definition-key "C->")
 
-;; 以下は必要な場合、適宜カスタマイズ
-;; (add-to-list 'vbasense-tli-files "c:/Program Files/Common Files/System/ado/msado21.tlb")
-;; (setq vbasense-cache-directory "c:/TEMP/vbasense")
-;; (add-to-list 'vbasense-enable-modes 'hoge-mode)
-;; (add-to-list 'vbasense-ac-trigger-command-keys "=")
-;; (add-to-list 'vbasense-user-library-directories "c:/MyVBALibraray")
-;; (setq vbasense-setup-user-library-function (lambda () (vbasense-load-project)))
-;; (add-to-list 'vbasense-ac-implicit-enummember-prefixes "mso")
-;; (setq vbasense-lookup-current-buffer-threshold 15000)
+;; 必要に応じて適宜カスタマイズして下さい。以下のS式を評価することで項目についての情報が得られます。
+;; (customize-group "vbasense")
 
 ;; 推奨設定を行う
 (vbasense-config-default)
 ```
 
-※上記の適宜カスタマイズとなっている項目については留意事項を参照して下さい。  
+※留意すべきカスタマイズ項目について、留意事項にまとめます。  
 
 
 留意事項

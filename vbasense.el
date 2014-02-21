@@ -5,7 +5,7 @@
 ;; Author: Hiroaki Otsu <ootsuhiroaki@gmail.com>
 ;; Keywords: vba, completion
 ;; URL: https://github.com/aki2o/emacs-vbasense
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Package-Requires: ((auto-complete "1.4.0") (log4e "0.2.0") (yaxception "0.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -51,21 +51,20 @@
 ;; (setq vbasense-popup-help-key "C-:")
 ;; (setq vbasense-jump-to-definition-key "C->")
 ;; 
-;; ;; If nesesarry, customize `vbasense-tli-files' for your environment
-;; (add-to-list 'vbasense-tli-files "c:/Program Files/Common Files/System/ado/msado21.tlb")
+;; ;; Make config suit for you. About the config item, see Customization or eval the following sexp.
+;; ;; (customize-group "vbasense")
+;; ;; 
+;; ;; The following items are particularly important
+;; ;; ** For loading installed library, set `vbasense-tli-files'
+;; ;; (add-to-list 'vbasense-tli-files "c:/Program Files/Common Files/System/ado/msado21.tlb")
 ;; 
-;; ;; If you want to change the directory, which the cache of library information is put in, customize `vbasense-cache-directory'
-;; (setq vbasense-cache-directory "d:/Cache/vbasense")
-;; 
-;; ;; For loading user library, which is information of VBA source file other than the opened buffer
+;; ;; ** For loading user library, which is information of VBA source file other than the opened buffer
 ;; ;; - You can load from your library directory by following configuration
-;; (add-to-list 'vbasense-user-library-directories "c:/MyVBALibraray")
+;; ;; (add-to-list 'vbasense-user-library-directories "c:/MyVBALibraray")
 ;; ;; - Otherwise, you can load more flexibly by customizing `vbasense-setup-user-library-function'
 ;; ;;   - If you want to load recently files, use `vbasense-load-recently'
 ;; ;;   - If you want to use anything-project.el, use `vbasense-load-project'
-;; (setq vbasense-setup-user-library-function (lambda () (vbasense-load-project)))
-;; 
-;; ;; About other configuration, eval (customize-group "vbasense")
+;; ;; (setq vbasense-setup-user-library-function (lambda () (vbasense-load-project)))
 ;; 
 ;; (vbasense-config-default)
 
