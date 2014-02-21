@@ -5,7 +5,7 @@
 ;; Author: Hiroaki Otsu <ootsuhiroaki@gmail.com>
 ;; Keywords: vba, completion
 ;; URL: https://github.com/aki2o/emacs-vbasense
-;; Version: 0.0.3
+;; Version: 0.1.0
 ;; Package-Requires: ((auto-complete "1.4.0") (log4e "0.2.0") (yaxception "0.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -55,13 +55,7 @@
 ;; (add-to-list 'vbasense-tli-files "c:/Program Files/Common Files/System/ado/msado21.tlb")
 ;; 
 ;; ;; If you want to change the directory, which the cache of library information is put in, customize `vbasense-cache-directory'
-;; (setq vbasense-cache-directory "c:/TEMP/vbasense")
-;; 
-;; ;; If there is the mode, which you want to enable vbasense.el, customize `vbasense-enable-modes'
-;; (add-to-list 'vbasense-enable-modes 'hoge-mode)
-;; 
-;; ;; If there is the key, which you want to start completion of auto-complete.el, customize `vbasense-ac-trigger-command-keys'
-;; (add-to-list 'vbasense-ac-trigger-command-keys "=")
+;; (setq vbasense-cache-directory "d:/Cache/vbasense")
 ;; 
 ;; ;; For loading user library, which is information of VBA source file other than the opened buffer
 ;; ;; - You can load from your library directory by following configuration
@@ -71,7 +65,8 @@
 ;; ;;   - If you want to use anything-project.el, use `vbasense-load-project'
 ;; (setq vbasense-setup-user-library-function (lambda () (vbasense-load-project)))
 ;; 
-;; ;; Do setting a recommemded configuration
+;; ;; About other configuration, eval (customize-group "vbasense")
+;; 
 ;; (vbasense-config-default)
 
 ;;; Customization:
@@ -156,6 +151,7 @@
 (require 'log4e)
 (require 'yaxception)
 (require 'anything-project nil t)
+(require 'pos-tip nil t)
 
 
 (defgroup vbasense nil
@@ -2356,10 +2352,15 @@ The project is detected by `anything-project'."
     (yaxception:try
       (when (vbasense--active-p)
         (vbasense--update-current-instance)
-        (let* ((x (vbasense--get-current-identifier)))
-          (if (not x)
-              (message "[VBASense] Can't identify anything at point.")
-            (popup-tip (vbasense--get-any-document :x x))))))
+        (let* ((x (vbasense--get-current-identifier))
+               (doc (when x (vbasense--get-any-document :x x))))
+          (cond ((not doc)
+                 (message "[VBASense] Can't identify anything at point."))
+                ((and (functionp 'ac-quick-help-use-pos-tip-p)
+                      (ac-quick-help-use-pos-tip-p))
+                 (pos-tip-show doc 'popup-tip-face nil nil 300 popup-tip-max-width))
+                (t
+                 (popup-tip doc))))))
     (yaxception:catch 'error e
       (message "[VBASense] %s" (yaxception:get-text e))
       (vbasense--error "failed popup help : %s\n%s"
